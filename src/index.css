@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===========================================================================
+ *  Globale Basis-Stile
+ * ======================================================================== */
+:root {
+  color-scheme: light;
+}
+
+html {
+  /* Weicheres Scrollverhalten beim Sprung von Formular zu Angebot. */
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-100 text-slate-800 antialiased;
+}
+
+/* ===========================================================================
+ *  DRUCK-/PDF-OPTIMIERUNG  (Button "Als PDF drucken" -> window.print())
+ *
+ *  Beim Drucken blenden wir die Bedien-Elemente aus und zeigen NUR das
+ *  Angebotsdokument formatfüllend an. Elemente mit der Klasse `.no-print`
+ *  verschwinden, Elemente mit `.print-document` werden randlos dargestellt.
+ * ======================================================================== */
+@media print {
+  /* Alles, was nicht zum Dokument gehört (App-Leiste, Buttons …), ausblenden. */
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  /* Das Dokument selbst: ohne Schatten, ohne Außenabstand, volle Breite. */
+  .print-document {
+    box-shadow: none !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    border: none !important;
+  }
+
+  /* Hintergrundfarben (z. B. Gruppen-Kopfzeilen) auch im Druck zeigen. */
+  .print-exact {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Tabellenzeilen/Gruppen möglichst nicht über Seitenumbrüche zerreißen. */
+  .avoid-break {
+    break-inside: avoid;
+  }
+
+  /* DIN-A4 mit sinnvollem Seitenrand. */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+}
+
+/* Einfache Lade-Animation (Punkte) für den "Angebot wird kalkuliert"-Zustand. */
+@keyframes dot-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
