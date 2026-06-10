@@ -1,0 +1,67 @@
+name: Demo auf GitHub Pages veröffentlichen
+
+# Baut die App automatisch und stellt sie als statische Website bereit.
+# Ergebnis-Adresse (nach dem ersten erfolgreichen Lauf):
+#   https://stevenweber2112-oss.github.io/Demo-Handwerk-/
+#
+# Einmalig nötig: In GitHub unter  Settings → Pages → "Build and deployment"
+# → Source: "GitHub Actions" auswählen (dieser Workflow versucht das aber auch
+# selbst zu aktivieren).
+
+on:
+  # Bewusst KEIN automatischer Auslöser: Die Veröffentlichung startet erst,
+  # wenn sie ausdrücklich angestoßen wird – manuell in GitHub unter
+  # "Actions" → diesen Workflow → "Run workflow". So wird nichts ungewollt
+  # öffentlich gestellt.
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      # Für ein "Project Pages"-Repo liegt die Seite unter /Demo-Handwerk-/,
+      # daher der passende Base-Pfad beim Build.
+      - name: App bauen
+        run: npm run build -- --base=/Demo-Handwerk-/
+
+      - name: GitHub Pages konfigurieren (und ggf. aktivieren)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Build-Ergebnis als Pages-Artefakt hochladen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Auf GitHub Pages veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4
