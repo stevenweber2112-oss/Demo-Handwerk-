@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   // Tailwind durchsucht diese Dateien nach genutzten Utility-Klassen.
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  content: ['./index.html', './elektriker/index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       // Markenfarben der Demo. Hier zentral anpassbar, falls der Betrieb

@@ -71,6 +71,34 @@ ohne die React-Komponenten anzufassen.
 
 ---
 
+## Zweite Demo: Elektriker
+
+Im selben Projekt liegt eine **zweite, eigenständige Demo für einen
+Elektrobetrieb** – als Beispiel, wie einfach sich der Assistent auf ein anderes
+Gewerk übertragen lässt. Beide Apps teilen sich Styling und Grundgerüst, haben
+aber eigene Felder, Preise und Formeln.
+
+```
+src/elektriker/
+├── calculation.ts            ← Elektriker-Preislogik (eigene PREIS-KONSTANTEN)
+├── components/QuoteForm.tsx
+├── components/QuoteDocument.tsx
+├── App.tsx
+└── main.tsx
+elektriker/index.html          ← eigener Einstiegspunkt (zweite Seite)
+```
+
+- **Adressen:** Tischler-Demo unter `/`, Elektriker-Demo unter `/elektriker/`.
+- Technisch ist das ein **Multi-Page-Build** (zwei `index.html`-Einstiegspunkte,
+  konfiguriert in `vite.config.ts`).
+- Die Elektriker-Demo zeigt zusätzlich ein paar Profi-Details (inspiriert von
+  Handwerker-Software wie *plancraft*, jedoch in eigenem Design): optionaler
+  **Nachlass/Rabatt**, **Skonto** und der separat ausgewiesene **Lohnanteil**
+  (für Privatkunden anteilig nach § 35a EStG absetzbar). Angepasst wird das
+  alles in `src/elektriker/calculation.ts`.
+
+---
+
 ## Preise anpassen
 
 Alles Preisrelevante steht zentral in **`src/lib/calculation.ts`**, im klar
