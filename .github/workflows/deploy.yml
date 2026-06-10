@@ -9,10 +9,10 @@ name: Demo auf GitHub Pages veröffentlichen
 # selbst zu aktivieren).
 
 on:
-  # Bewusst KEIN automatischer Auslöser: Die Veröffentlichung startet erst,
-  # wenn sie ausdrücklich angestoßen wird – manuell in GitHub unter
-  # "Actions" → diesen Workflow → "Run workflow". So wird nichts ungewollt
-  # öffentlich gestellt.
+  # Veröffentlicht automatisch bei jeder Änderung auf diesem Branch.
+  push:
+    branches:
+      - claude/focused-hamilton-f60qcc
   workflow_dispatch: {}
 
 permissions:
