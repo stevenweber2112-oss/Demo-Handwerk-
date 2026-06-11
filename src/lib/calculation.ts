@@ -77,6 +77,8 @@ export interface QuoteInput {
   assembly: boolean
   /** Einfache Entfernung zur Baustelle in km (für die Anfahrt). */
   distanceKm: number
+  /** Optionaler Nachlass / Rabatt in Prozent (0 = kein Nachlass). */
+  rabattProzent: number
   /** Freitext für Sonderwünsche. */
   notes: string
 }
@@ -123,10 +125,18 @@ export interface Quote {
   projectSummary: string
   /** Die gefüllten Gruppen (leere Gruppen werden weggelassen). */
   groups: QuoteGroup[]
+  /** Zwischensumme netto (Summe aller Gruppen, vor Nachlass). */
+  zwischensumme: number
+  rabattProzent: number
+  rabattBetrag: number
+  /** Netto nach Abzug des Nachlasses. */
   net: number
   vatRate: number
   vat: number
   gross: number
+  /** Im Angebot enthaltener Lohn-/Arbeitsanteil (netto, nach Nachlass) –
+   *  für Privatkunden anteilig nach § 35a EStG steuerlich absetzbar. */
+  lohnanteil: number
   /** Geschätzte Ausführungs-/Lieferzeit als Text, z. B. "ca. 5–6 Wochen". */
   estimatedDuration: string
   /** Die ursprüngliche Eingabe (z. B. für die Projektbeschreibung). */
@@ -557,10 +567,22 @@ export function generateQuote(input: QuoteInput): Quote {
       return { name: g.name, positions, subtotal }
     })
 
-  // --- Summen (Netto / MwSt / Brutto) -----------------------------------
-  const net = round2(groups.reduce((sum, g) => sum + g.subtotal, 0))
+  // --- Summen (inkl. optionalem Nachlass / Rabatt) ----------------------
+  const zwischensumme = round2(groups.reduce((sum, g) => sum + g.subtotal, 0))
+  const rabattProzent = clamp(input.rabattProzent, 0, 100)
+  const rabattBetrag = round2(zwischensumme * (rabattProzent / 100))
+  const net = round2(zwischensumme - rabattBetrag)
   const vat = round2(net * MWST_SATZ)
   const gross = round2(net + vat)
+
+  // Lohnanteil = alle Positionen mit Einheit „Std“ (anteilig um den Nachlass
+  // gemindert). Wird separat ausgewiesen – für Privatkunden anteilig nach
+  // § 35a EStG steuerlich absetzbar.
+  const lohnBrutto = groups
+    .flatMap((g) => g.positions)
+    .filter((p) => p.unit === 'Std')
+    .reduce((s, p) => s + p.total, 0)
+  const lohnanteil = round2(lohnBrutto * (1 - rabattProzent / 100))
 
   // --- Geschätzte Ausführungs-/Lieferzeit -------------------------------
   // Grobe Heuristik aus Gesamtstunden (inkl. Vorlauf/Werkstattauslastung).
@@ -579,10 +601,14 @@ export function generateQuote(input: QuoteInput): Quote {
     }).format(date),
     projectSummary: buildProjectSummary(input),
     groups,
+    zwischensumme,
+    rabattProzent,
+    rabattBetrag,
     net,
     vatRate: MWST_SATZ,
     vat,
     gross,
+    lohnanteil,
     estimatedDuration,
     input,
   }

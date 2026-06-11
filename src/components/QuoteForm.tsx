@@ -39,6 +39,7 @@ interface FormState {
   numDoorsDrawers: string
   assembly: boolean
   distanceKm: string
+  rabattProzent: string
   notes: string
 }
 
@@ -54,6 +55,7 @@ const EMPTY_FORM: FormState = {
   numDoorsDrawers: '',
   assembly: false,
   distanceKm: '',
+  rabattProzent: '',
   notes: '',
 }
 
@@ -72,6 +74,7 @@ const EXAMPLE_FORM: FormState = {
   numDoorsDrawers: '5',
   assembly: true,
   distanceKm: '25',
+  rabattProzent: '',
   notes:
     'Grifflose Fronten mit Push-to-open, je Fach drei Einlegeböden, ' +
     'Sockelblende in Wandfarbe lackiert. Kundin wünscht Lieferung bis Ende des Quartals.',
@@ -112,7 +115,7 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
     }
 
     // Optionale Zahlenfelder: wenn ausgefüllt, müssen sie gültig (>= 0) sein.
-    for (const field of ['numDoorsDrawers', 'distanceKm'] as const) {
+    for (const field of ['numDoorsDrawers', 'distanceKm', 'rabattProzent'] as const) {
       const raw = form[field]
       if (raw.trim() !== '') {
         const num = Number(raw)
@@ -120,6 +123,10 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
           next[field] = 'Bitte eine Zahl ≥ 0 angeben'
         }
       }
+    }
+    // Nachlass zusätzlich auf höchstens 100 % begrenzen.
+    if (form.rabattProzent.trim() !== '' && Number(form.rabattProzent) > 100) {
+      next.rabattProzent = 'Höchstens 100 %'
     }
 
     return next
@@ -146,6 +153,7 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
       numDoorsDrawers: form.numDoorsDrawers.trim() === '' ? 0 : Number(form.numDoorsDrawers),
       assembly: form.assembly,
       distanceKm: form.distanceKm.trim() === '' ? 0 : Number(form.distanceKm),
+      rabattProzent: form.rabattProzent.trim() === '' ? 0 : Number(form.rabattProzent),
       notes: form.notes.trim(),
     }
     onGenerate(input)
@@ -288,7 +296,7 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
       {/* ---------- Block: Montage & Anfahrt ---------- */}
       <fieldset className="space-y-5">
         <legend className="text-sm font-semibold uppercase tracking-wide text-brand-700">
-          Montage &amp; Anfahrt
+          Montage, Anfahrt &amp; Konditionen
         </legend>
 
         <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2">
@@ -313,6 +321,21 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
               value={form.distanceKm}
               onChange={(e) => update('distanceKm', e.target.value)}
               placeholder="z. B. 25"
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Nachlass / Rabatt" hint="%, optional" error={errors.rabattProzent}>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              inputMode="numeric"
+              className={inputClass(!!errors.rabattProzent)}
+              value={form.rabattProzent}
+              onChange={(e) => update('rabattProzent', e.target.value)}
+              placeholder="z. B. 3"
             />
           </Field>
         </div>

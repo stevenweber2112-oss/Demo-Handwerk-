@@ -28,6 +28,8 @@ const FIRMA = {
   telefon: '01234 / 56 78 90',
   email: 'info@tischlerei-mustermann.de',
   steuernr: 'DE123456789',
+  iban: 'DE00 1234 5678 9012 3456 00',
+  bank: 'Musterbank',
 }
 
 export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
@@ -81,6 +83,7 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
             <dl className="mt-3 space-y-1 text-sm">
               <MetaRow label="Angebots-Nr." value={quote.quoteNumber} />
               <MetaRow label="Datum" value={quote.date} />
+              <MetaRow label="Kunden-Nr." value="K-1042" />
               <MetaRow label="USt-IdNr." value={FIRMA.steuernr} />
             </dl>
           </div>
@@ -138,7 +141,16 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
         {/* Summenblock */}
         <div className="mt-6 flex justify-end">
           <div className="w-full max-w-xs space-y-2 text-sm">
-            <SummaryRow label="Zwischensumme netto" value={formatEuro(quote.net)} />
+            <SummaryRow label="Zwischensumme netto" value={formatEuro(quote.zwischensumme)} />
+            {quote.rabattProzent > 0 && (
+              <SummaryRow
+                label={`Nachlass ${formatNumber(quote.rabattProzent, 0)} %`}
+                value={`− ${formatEuro(quote.rabattBetrag)}`}
+              />
+            )}
+            {quote.rabattProzent > 0 && (
+              <SummaryRow label="Summe netto" value={formatEuro(quote.net)} strong />
+            )}
             <SummaryRow
               label={`zzgl. ${formatNumber(quote.vatRate * 100, 0)} % MwSt.`}
               value={formatEuro(quote.vat)}
@@ -150,6 +162,16 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
           </div>
         </div>
 
+        {/* Lohnanteil-Hinweis (§ 35a EStG) */}
+        <div className="mt-4 flex justify-end">
+          <p className="max-w-md rounded-lg bg-slate-50 px-4 py-3 text-right text-xs leading-relaxed text-slate-500">
+            Im Gesamtbetrag enthaltener Lohnanteil:{' '}
+            <span className="font-semibold text-slate-700">{formatEuro(quote.lohnanteil)}</span>{' '}
+            (netto). Für Privatkunden sind 20 % der Lohnkosten (Handwerkerleistung) bis zu den
+            gesetzlichen Höchstgrenzen steuerlich absetzbar (§ 35a EStG).
+          </p>
+        </div>
+
         {/* Konditionen */}
         <section className="mt-10 grid grid-cols-1 gap-x-8 gap-y-5 border-t border-slate-200 pt-8 text-sm sm:grid-cols-2">
           <Condition title="Ausführungsdauer">
@@ -158,8 +180,9 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
           <Condition title="Gewährleistung">
             5 Jahre gemäß § 438 BGB auf die handwerkliche Leistung
           </Condition>
-          <Condition title="Zahlungsbedingungen">
-            30 % bei Auftrag, 40 % bei Lieferung, 30 % nach Fertigstellung – jeweils ohne Abzug
+          <Condition title="Zahlung &amp; Skonto">
+            30 % bei Auftrag, 40 % bei Lieferung, 30 % nach Fertigstellung. 2 % Skonto bei Zahlung
+            innerhalb von 10 Tagen ab Rechnungsdatum.
           </Condition>
           <Condition title="Gültigkeit des Angebots">6 Wochen ab Angebotsdatum</Condition>
         </section>
@@ -176,6 +199,9 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
             {FIRMA.name}
           </p>
           <p className="mt-6 text-xs text-slate-400">
+            Bankverbindung: {FIRMA.bank} · IBAN {FIRMA.iban} · USt-IdNr. {FIRMA.steuernr}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
             Demo-Kalkulation auf Basis hinterlegter Beispielpreise · alle Preise in Euro · Angaben
             ohne Gewähr.
           </p>
@@ -238,9 +264,13 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between px-4 text-slate-600">
+    <div
+      className={`flex items-center justify-between px-4 ${
+        strong ? 'font-semibold text-slate-800' : 'text-slate-600'
+      }`}
+    >
       <span>{label}</span>
       <span className="tabular-nums">{value}</span>
     </div>
