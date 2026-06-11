@@ -76,7 +76,7 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
             <dl className="mt-3 space-y-1 text-sm">
               <MetaRow label="Angebots-Nr." value={quote.quoteNumber} />
               <MetaRow label="Datum" value={quote.date} />
-              <MetaRow label="Kunden-Nr." value="K-1042" />
+              <MetaRow label="Kunden-Nr." value={quote.customerNumber} />
               <MetaRow label="USt-IdNr." value={FIRMA.steuernr} />
             </dl>
           </div>
@@ -87,8 +87,14 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Angebot für</p>
             <div className="mt-2 text-sm leading-relaxed text-slate-700">
-              <p className="font-medium text-slate-900">Musterkunde</p>
-              <p className="text-slate-400">[Anschrift des Kunden]</p>
+              <p className="font-medium text-slate-900">
+                {quote.input.customerName || 'Musterkunde'}
+              </p>
+              {quote.input.customerAddress ? (
+                <p className="whitespace-pre-line text-slate-600">{quote.input.customerAddress}</p>
+              ) : (
+                <p className="text-slate-400">[Anschrift des Kunden]</p>
+              )}
             </div>
             <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Leistungsort / Bauvorhaben

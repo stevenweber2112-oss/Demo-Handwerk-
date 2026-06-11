@@ -29,6 +29,9 @@ interface QuoteFormProps {
 
 /** Interner Formular-Zustand. Zahlenfelder als String (erlaubt leere Eingabe). */
 interface FormState {
+  customerName: string
+  customerNumber: string
+  customerAddress: string
   projectType: ProjectType
   widthCm: string
   heightCm: string
@@ -45,6 +48,9 @@ interface FormState {
 
 /** Leeres Formular (Startzustand). */
 const EMPTY_FORM: FormState = {
+  customerName: '',
+  customerNumber: '',
+  customerAddress: '',
   projectType: 'einbauschrank',
   widthCm: '',
   heightCm: '',
@@ -64,6 +70,9 @@ const EMPTY_FORM: FormState = {
  * füllt sich damit das gesamte Formular – ideal für die schnelle Vorführung.
  */
 const EXAMPLE_FORM: FormState = {
+  customerName: 'Familie Bergmann',
+  customerNumber: '',
+  customerAddress: 'Lindenstraße 24\n80331 München',
   projectType: 'einbauschrank',
   widthCm: '250',
   heightCm: '240',
@@ -154,6 +163,9 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
       assembly: form.assembly,
       distanceKm: form.distanceKm.trim() === '' ? 0 : Number(form.distanceKm),
       rabattProzent: form.rabattProzent.trim() === '' ? 0 : Number(form.rabattProzent),
+      customerName: form.customerName.trim(),
+      customerNumber: form.customerNumber.trim(),
+      customerAddress: form.customerAddress.trim(),
       notes: form.notes.trim(),
     }
     onGenerate(input)
@@ -171,6 +183,41 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* ---------- Block: Kundendaten ---------- */}
+      <fieldset className="space-y-5">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-brand-700">
+          Kundendaten
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Name / Firma" hint="optional">
+            <input
+              type="text"
+              className={`${baseControlClass} border-slate-300 focus:border-brand-500`}
+              value={form.customerName}
+              onChange={(e) => update('customerName', e.target.value)}
+              placeholder="z. B. Familie Bergmann"
+            />
+          </Field>
+          <Field label="Kundennummer" hint="optional – wird sonst vergeben">
+            <input
+              type="text"
+              className={`${baseControlClass} border-slate-300 focus:border-brand-500`}
+              value={form.customerNumber}
+              onChange={(e) => update('customerNumber', e.target.value)}
+              placeholder="z. B. K-1042"
+            />
+          </Field>
+        </div>
+        <Field label="Anschrift" hint="Straße, PLZ Ort – optional">
+          <textarea
+            className={`${baseControlClass} min-h-[72px] resize-y border-slate-300 focus:border-brand-500`}
+            value={form.customerAddress}
+            onChange={(e) => update('customerAddress', e.target.value)}
+            placeholder={'Straße und Hausnummer\nPLZ Ort'}
+          />
+        </Field>
+      </fieldset>
+
       {/* ---------- Block: Projekt & Maße ---------- */}
       <fieldset className="space-y-5">
         <legend className="text-sm font-semibold uppercase tracking-wide text-brand-700">

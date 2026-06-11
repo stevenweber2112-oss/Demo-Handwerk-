@@ -25,6 +25,9 @@ interface QuoteFormProps {
 }
 
 interface FormState {
+  customerName: string
+  customerNumber: string
+  customerAddress: string
   projectType: ProjectType
   building: BuildingType
   verlegung: Verlegung
@@ -44,6 +47,9 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
+  customerName: '',
+  customerNumber: '',
+  customerAddress: '',
   projectType: 'neuinstallation',
   building: 'altbau',
   verlegung: 'unterputz',
@@ -64,6 +70,9 @@ const EMPTY_FORM: FormState = {
 
 /** Realistischer Beispiel-Fall (Sanierung 3-Zimmer-Altbauwohnung). */
 const EXAMPLE_FORM: FormState = {
+  customerName: 'Familie Krüger',
+  customerNumber: '',
+  customerAddress: 'Gartenweg 8\n04109 Leipzig',
   projectType: 'neuinstallation',
   building: 'altbau',
   verlegung: 'unterputz',
@@ -171,6 +180,9 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
       pvKwp: num(form.pvKwp),
       distanceKm: num(form.distanceKm),
       rabattProzent: num(form.rabattProzent),
+      customerName: form.customerName.trim(),
+      customerNumber: form.customerNumber.trim(),
+      customerAddress: form.customerAddress.trim(),
       notes: form.notes.trim(),
     }
     onGenerate(input)
@@ -188,6 +200,41 @@ export default function QuoteForm({ onGenerate, isGenerating }: QuoteFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* ---------- Kundendaten ---------- */}
+      <fieldset className="space-y-5">
+        <legend className="text-sm font-semibold uppercase tracking-wide text-brand-700">
+          Kundendaten
+        </legend>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Name / Firma" hint="optional">
+            <input
+              type="text"
+              className={`${baseControlClass} border-slate-300 focus:border-brand-500`}
+              value={form.customerName}
+              onChange={(e) => update('customerName', e.target.value)}
+              placeholder="z. B. Familie Krüger"
+            />
+          </Field>
+          <Field label="Kundennummer" hint="optional – wird sonst vergeben">
+            <input
+              type="text"
+              className={`${baseControlClass} border-slate-300 focus:border-brand-500`}
+              value={form.customerNumber}
+              onChange={(e) => update('customerNumber', e.target.value)}
+              placeholder="z. B. K-1042"
+            />
+          </Field>
+        </div>
+        <Field label="Anschrift" hint="Straße, PLZ Ort – optional">
+          <textarea
+            className={`${baseControlClass} min-h-[72px] resize-y border-slate-300 focus:border-brand-500`}
+            value={form.customerAddress}
+            onChange={(e) => update('customerAddress', e.target.value)}
+            placeholder={'Straße und Hausnummer\nPLZ Ort'}
+          />
+        </Field>
+      </fieldset>
+
       {/* ---------- Projekt & Gebäude ---------- */}
       <fieldset className="space-y-5">
         <legend className="text-sm font-semibold uppercase tracking-wide text-brand-700">

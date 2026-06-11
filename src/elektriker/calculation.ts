@@ -80,6 +80,12 @@ export interface QuoteInput {
   distanceKm: number
   /** Optionaler Nachlass / Rabatt in Prozent (0 = kein Nachlass). */
   rabattProzent: number
+  /** Kundendaten für den Angebotskopf (alle optional). */
+  customerName: string
+  /** Kundennummer – leer = wird automatisch eindeutig vergeben. */
+  customerNumber: string
+  /** Anschrift des Kunden (mehrzeilig, z. B. Straße + PLZ/Ort). */
+  customerAddress: string
   /** Freitext für Sonderwünsche. */
   notes: string
 }
@@ -104,6 +110,8 @@ export interface QuoteGroup {
 /** Das fertige Angebot. */
 export interface Quote {
   quoteNumber: string
+  /** Kundennummer – vom Nutzer eingegeben oder automatisch vergeben. */
+  customerNumber: string
   date: string
   projectSummary: string
   groups: QuoteGroup[]
@@ -362,6 +370,11 @@ function buildQuoteNumber(date: Date): string {
   return `AN-${year}-${suffix}`
 }
 
+/** Erzeugt eine eindeutige Kundennummer (Demo: 5-stellig, K-#####). */
+function buildCustomerNumber(): string {
+  return `K-${Math.floor(10000 + Math.random() * 90000)}`
+}
+
 function buildProjectSummary(input: QuoteInput, m: Mengen): string {
   const teile: string[] = [PROJECT_TYPE_LABELS[input.projectType]]
   teile.push(`${BUILDING_LABELS[input.building]}, ${VERLEGUNG_LABELS[input.verlegung]}`)
@@ -618,9 +631,14 @@ export function generateQuote(input: QuoteInput): Quote {
   const tage = clamp(Math.round(gesamtStunden / 8), 1, 60)
   const estimatedDuration = `ca. ${tage}–${tage + 2} Arbeitstage`
 
+  // --- Kundennummer: eingegeben oder automatisch eindeutig vergeben -----
+  const customerNumber =
+    input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber()
+
   const date = new Date()
   return {
     quoteNumber: buildQuoteNumber(date),
+    customerNumber,
     date: new Intl.DateTimeFormat('de-DE', {
       day: '2-digit',
       month: '2-digit',

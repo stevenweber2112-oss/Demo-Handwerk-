@@ -79,6 +79,12 @@ export interface QuoteInput {
   distanceKm: number
   /** Optionaler Nachlass / Rabatt in Prozent (0 = kein Nachlass). */
   rabattProzent: number
+  /** Kundendaten für den Angebotskopf (alle optional). */
+  customerName: string
+  /** Kundennummer – leer = wird automatisch eindeutig vergeben. */
+  customerNumber: string
+  /** Anschrift des Kunden (mehrzeilig, z. B. Straße + PLZ/Ort). */
+  customerAddress: string
   /** Freitext für Sonderwünsche. */
   notes: string
 }
@@ -119,6 +125,8 @@ export interface QuoteGroup {
 /** Das fertige Angebot, das die UI anzeigt. */
 export interface Quote {
   quoteNumber: string
+  /** Kundennummer – vom Nutzer eingegeben oder automatisch vergeben. */
+  customerNumber: string
   /** Datum bereits deutsch formatiert, z. B. "09.06.2025". */
   date: string
   /** Menschliche Zusammenfassung des Projekts (eine Zeile). */
@@ -392,6 +400,11 @@ function buildQuoteNumber(date: Date): string {
   return `AN-${year}-${suffix}`
 }
 
+/** Erzeugt eine eindeutige Kundennummer (Demo: 5-stellig, K-#####). */
+function buildCustomerNumber(): string {
+  return `K-${Math.floor(10000 + Math.random() * 90000)}`
+}
+
 /** Erzeugt die menschenlesbare Projektzusammenfassung (eine Zeile). */
 function buildProjectSummary(input: QuoteInput): string {
   const teile: string[] = [PROJECT_TYPE_LABELS[input.projectType] + ' nach Maß']
@@ -590,10 +603,15 @@ export function generateQuote(input: QuoteInput): Quote {
   const wochen = clamp(Math.ceil(gesamtStunden / 25) + 2, 3, 12)
   const estimatedDuration = `ca. ${wochen}–${wochen + 1} Wochen`
 
+  // --- Kundennummer: eingegeben oder automatisch eindeutig vergeben -----
+  const customerNumber =
+    input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber()
+
   // --- Fertiges Angebot -------------------------------------------------
   const date = new Date()
   return {
     quoteNumber: buildQuoteNumber(date),
+    customerNumber,
     date: new Intl.DateTimeFormat('de-DE', {
       day: '2-digit',
       month: '2-digit',
