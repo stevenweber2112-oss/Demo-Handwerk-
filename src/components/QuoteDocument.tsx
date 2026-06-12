@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   formatEuro,
   formatNumber,
@@ -17,6 +18,9 @@ import {
 interface QuoteDocumentProps {
   quote: Quote
   onReset: () => void
+  /** Überarbeitung anstoßen (Stunden-Korrektur + Hinweise). */
+  onRevise: (adj: { stundenKorrektur: number; revisionNote: string }) => void
+  isRevising: boolean
 }
 
 /** Platzhalter-Stammdaten des Betriebs. Hier den echten Betrieb eintragen. */
@@ -32,7 +36,25 @@ const FIRMA = {
   bank: 'Musterbank',
 }
 
-export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
+export default function QuoteDocument({
+  quote,
+  onReset,
+  onRevise,
+  isRevising,
+}: QuoteDocumentProps) {
+  // Lokaler Zustand des Überarbeitungs-Felds (Stunden-Korrektur + Hinweise).
+  const [korrektur, setKorrektur] = useState(
+    quote.stundenKorrektur !== 0 ? String(quote.stundenKorrektur) : '',
+  )
+  const [hinweis, setHinweis] = useState(quote.revisionNote)
+
+  function submitRevision() {
+    onRevise({
+      stundenKorrektur: korrektur.trim() === '' ? 0 : Number(korrektur),
+      revisionNote: hinweis.trim(),
+    })
+  }
+
   return (
     <div>
       {/* ---------- Aktionsleiste (wird NICHT mitgedruckt) ---------- */}
@@ -51,6 +73,54 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
           <PrinterIcon />
           Als PDF drucken
         </button>
+      </div>
+
+      {/* ---------- Überarbeiten (Betriebsbereich, NICHT im Druck) ---------- */}
+      <div className="no-print mx-auto mb-6 max-w-4xl rounded-xl border border-brand-200 bg-brand-50/60 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <ReviseIcon />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-800">Angebot anpassen &amp; überarbeiten</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Nur für den Betrieb: Arbeitszeit korrigieren und Änderungen notieren – daraus entsteht
+              ein überarbeitetes Angebot (gleiche Angebots- &amp; Kunden-Nr., höhere Revision).
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Arbeitszeit anpassen (Std)
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={korrektur}
+                  onChange={(e) => setKorrektur(e.target.value)}
+                  placeholder="+ mehr / − weniger"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Änderungen / Hinweise (erscheinen im Angebot)
+                </label>
+                <input
+                  type="text"
+                  value={hinweis}
+                  onChange={(e) => setHinweis(e.target.value)}
+                  placeholder="z. B. Massivholz statt Furnier, zusätzliche Schublade …"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+              </div>
+            </div>
+            <button
+              onClick={submitRevision}
+              disabled={isRevising}
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 disabled:opacity-70"
+            >
+              {isRevising ? 'Wird überarbeitet …' : 'Überarbeitetes Angebot erstellen'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ---------- Das eigentliche Angebotsdokument ---------- */}
@@ -80,6 +150,11 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
 
           <div className="sm:text-right">
             <h2 className="text-2xl font-bold uppercase tracking-tight text-brand-700">Angebot</h2>
+            {quote.revision > 1 && (
+              <p className="print-exact mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                Überarbeitete Fassung · Rev. {quote.revision}
+              </p>
+            )}
             <dl className="mt-3 space-y-1 text-sm">
               <MetaRow label="Angebots-Nr." value={quote.quoteNumber} />
               <MetaRow label="Datum" value={quote.date} />
@@ -116,6 +191,16 @@ export default function QuoteDocument({ quote, onReset }: QuoteDocumentProps) {
             )}
           </div>
         </section>
+
+        {/* Hinweise zur Überarbeitung (falls vorhanden) */}
+        {quote.revisionNote && (
+          <div className="print-exact mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Hinweise zur Überarbeitung
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-700">{quote.revisionNote}</p>
+          </div>
+        )}
 
         {/* Einleitungssatz */}
         <p className="mb-6 text-sm leading-relaxed text-slate-600">
@@ -293,6 +378,14 @@ function Condition({ title, children }: { title: string; children: React.ReactNo
 }
 
 /* ---------- Icons ---------- */
+
+function ReviseIcon() {
+  return (
+    <svg className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M13.586 3.586a2 2 0 112.828 2.828l-8.5 8.5a2 2 0 01-.878.513l-3 .857a.5.5 0 01-.618-.618l.857-3a2 2 0 01.513-.878l8.5-8.5z" />
+    </svg>
+  )
+}
 
 function PrinterIcon() {
   return (

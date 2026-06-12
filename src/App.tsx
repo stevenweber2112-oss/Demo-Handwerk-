@@ -24,6 +24,8 @@ export default function App() {
   const [quote, setQuote] = useState<Quote | null>(null)
   // True, während das Angebot "berechnet" wird (für die Lade-Animation).
   const [isGenerating, setIsGenerating] = useState(false)
+  // True, während eine Überarbeitung (zweites Angebot) erstellt wird.
+  const [isRevising, setIsRevising] = useState(false)
 
   /**
    * Wird vom Formular mit gültiger Eingabe aufgerufen. Wir simulieren eine
@@ -47,6 +49,30 @@ export default function App() {
   function handleReset() {
     setQuote(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  /**
+   * Überarbeitung durch den Betrieb: Stunden-Korrektur und Hinweise anwenden
+   * und daraus ein überarbeitetes (zweites) Angebot erzeugen – mit gleicher
+   * Angebots- und Kundennummer, nur höherer Revisionsnummer.
+   */
+  function handleRevise(adj: { stundenKorrektur: number; revisionNote: string }) {
+    if (!quote) return
+    const base = quote
+    setIsRevising(true)
+    window.setTimeout(() => {
+      setQuote(
+        generateQuote(base.input, {
+          stundenKorrektur: adj.stundenKorrektur,
+          revisionNote: adj.revisionNote,
+          revision: base.revision + 1,
+          quoteNumber: base.quoteNumber,
+          customerNumber: base.customerNumber,
+        }),
+      )
+      setIsRevising(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 800)
   }
 
   return (
@@ -75,7 +101,12 @@ export default function App() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         {quote ? (
           // ----- Ansicht: fertiges Angebot -----
-          <QuoteDocument quote={quote} onReset={handleReset} />
+          <QuoteDocument
+            quote={quote}
+            onReset={handleReset}
+            onRevise={handleRevise}
+            isRevising={isRevising}
+          />
         ) : (
           // ----- Ansicht: Eingabeformular -----
           <div className="relative">

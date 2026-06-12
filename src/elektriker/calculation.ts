@@ -128,6 +128,12 @@ export interface Quote {
    *  für Privatkunden anteilig nach § 35a EStG steuerlich absetzbar. */
   lohnanteil: number
   estimatedDuration: string
+  /** Überarbeitungsstand: 1 = Erstangebot, 2+ = überarbeitete Fassung. */
+  revision: number
+  /** Hinweise des Betriebs zur Überarbeitung (erscheinen im Angebot). */
+  revisionNote: string
+  /** Vom Betrieb gesetzte Arbeitszeit-Korrektur in Stunden (+ mehr / − weniger). */
+  stundenKorrektur: number
   input: QuoteInput
 }
 
@@ -394,7 +400,21 @@ function buildProjectSummary(input: QuoteInput, m: Mengen): string {
  *    dann kann die gesamte Oberfläche unverändert weiterlaufen.
  * ======================================================================== */
 
-export function generateQuote(input: QuoteInput): Quote {
+export function generateQuote(
+  input: QuoteInput,
+  /** Optionale Überarbeitung durch den Betrieb (für ein zweites Angebot). */
+  adjustments?: {
+    stundenKorrektur?: number
+    revisionNote?: string
+    revision?: number
+    quoteNumber?: string
+    customerNumber?: string
+  },
+): Quote {
+  // Überarbeitungs-Parameter mit Standardwerten (Erstangebot = Revision 1).
+  const revision = adjustments?.revision ?? 1
+  const revisionNote = adjustments?.revisionNote ?? ''
+  const stundenKorrektur = round2(adjustments?.stundenKorrektur ?? 0)
   const m = computeMengen(input)
 
   const gLeitungen: Omit<QuotePosition, 'position'>[] = []
@@ -554,6 +574,17 @@ export function generateQuote(input: QuoteInput): Quote {
     unitPrice: STUNDENSATZ,
     total: round2(inbetriebStunden * STUNDENSATZ),
   })
+  // Überarbeitung: vom Betrieb gesetzte Stunden-Korrektur (+/−) als eigene,
+  // transparente Position. Negativ = weniger Aufwand, positiv = Mehraufwand.
+  if (stundenKorrektur !== 0) {
+    gArbeit.push({
+      description: 'Korrektur Arbeitszeit (Überarbeitung durch Betrieb)',
+      unit: 'Std',
+      quantity: stundenKorrektur,
+      unitPrice: STUNDENSATZ,
+      total: round2(stundenKorrektur * STUNDENSATZ),
+    })
+  }
 
   // --- (6) STEMM- & NEBENARBEITEN (nur Altbau/Kernsanierung + Unterputz) -
   const braucheStemm =
@@ -627,17 +658,18 @@ export function generateQuote(input: QuoteInput): Quote {
   const lohnanteil = round2(lohnBrutto * (1 - rabattProzent / 100))
 
   // --- Geschätzte Ausführungsdauer (aus Gesamtstunden, ~8 h/Arbeitstag) --
-  const gesamtStunden = installStunden + inbetriebStunden
+  const gesamtStunden = installStunden + inbetriebStunden + stundenKorrektur
   const tage = clamp(Math.round(gesamtStunden / 8), 1, 60)
   const estimatedDuration = `ca. ${tage}–${tage + 2} Arbeitstage`
 
-  // --- Kundennummer: eingegeben oder automatisch eindeutig vergeben -----
+  // --- Kunden-Nr. & Angebots-Nr.: bei Überarbeitung übernehmen, sonst neu --
   const customerNumber =
-    input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber()
+    adjustments?.customerNumber ??
+    (input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber())
 
   const date = new Date()
   return {
-    quoteNumber: buildQuoteNumber(date),
+    quoteNumber: adjustments?.quoteNumber ?? buildQuoteNumber(date),
     customerNumber,
     date: new Intl.DateTimeFormat('de-DE', {
       day: '2-digit',
@@ -655,6 +687,9 @@ export function generateQuote(input: QuoteInput): Quote {
     gross,
     lohnanteil,
     estimatedDuration,
+    revision,
+    revisionNote,
+    stundenKorrektur,
     input,
   }
 }

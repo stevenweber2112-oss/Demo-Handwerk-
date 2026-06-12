@@ -15,6 +15,7 @@ const GENERATION_DELAY_MS = 1000
 export default function App() {
   const [quote, setQuote] = useState<Quote | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRevising, setIsRevising] = useState(false)
 
   function handleGenerate(input: QuoteInput) {
     setIsGenerating(true)
@@ -29,6 +30,26 @@ export default function App() {
   function handleReset() {
     setQuote(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  /** Überarbeitung: zweites Angebot mit Stunden-Korrektur und Hinweisen. */
+  function handleRevise(adj: { stundenKorrektur: number; revisionNote: string }) {
+    if (!quote) return
+    const base = quote
+    setIsRevising(true)
+    window.setTimeout(() => {
+      setQuote(
+        generateQuote(base.input, {
+          stundenKorrektur: adj.stundenKorrektur,
+          revisionNote: adj.revisionNote,
+          revision: base.revision + 1,
+          quoteNumber: base.quoteNumber,
+          customerNumber: base.customerNumber,
+        }),
+      )
+      setIsRevising(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 800)
   }
 
   return (
@@ -61,7 +82,12 @@ export default function App() {
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         {quote ? (
-          <QuoteDocument quote={quote} onReset={handleReset} />
+          <QuoteDocument
+            quote={quote}
+            onReset={handleReset}
+            onRevise={handleRevise}
+            isRevising={isRevising}
+          />
         ) : (
           <div className="relative">
             <div className="no-print mb-8">

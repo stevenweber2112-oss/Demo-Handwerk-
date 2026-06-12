@@ -147,6 +147,12 @@ export interface Quote {
   lohnanteil: number
   /** Geschätzte Ausführungs-/Lieferzeit als Text, z. B. "ca. 5–6 Wochen". */
   estimatedDuration: string
+  /** Überarbeitungsstand: 1 = Erstangebot, 2+ = überarbeitete Fassung. */
+  revision: number
+  /** Hinweise des Betriebs zur Überarbeitung (erscheinen im Angebot). */
+  revisionNote: string
+  /** Vom Betrieb gesetzte Arbeitszeit-Korrektur in Stunden (+ mehr / − weniger). */
+  stundenKorrektur: number
   /** Die ursprüngliche Eingabe (z. B. für die Projektbeschreibung). */
   input: QuoteInput
 }
@@ -432,7 +438,21 @@ function buildProjectSummary(input: QuoteInput): string {
  *    (Anleitung dazu in der README.)
  * ======================================================================== */
 
-export function generateQuote(input: QuoteInput): Quote {
+export function generateQuote(
+  input: QuoteInput,
+  /** Optionale Überarbeitung durch den Betrieb (für ein zweites Angebot). */
+  adjustments?: {
+    stundenKorrektur?: number
+    revisionNote?: string
+    revision?: number
+    quoteNumber?: string
+    customerNumber?: string
+  },
+): Quote {
+  // Überarbeitungs-Parameter mit Standardwerten (Erstangebot = Revision 1).
+  const revision = adjustments?.revision ?? 1
+  const revisionNote = adjustments?.revisionNote ?? ''
+  const stundenKorrektur = round2(adjustments?.stundenKorrektur ?? 0)
   // --- Mengen aus den Maßen bestimmen ------------------------------------
   const geo = computeGeometry(input)
 
@@ -517,6 +537,17 @@ export function generateQuote(input: QuoteInput): Quote {
     unitPrice: STUNDENSATZ,
     total: round2(werkstattStunden * STUNDENSATZ),
   })
+  // Überarbeitung: vom Betrieb gesetzte Stunden-Korrektur (+/−) als eigene,
+  // transparente Position. Negativ = weniger Aufwand, positiv = Mehraufwand.
+  if (stundenKorrektur !== 0) {
+    groupLabor.push({
+      description: 'Korrektur Arbeitszeit (Überarbeitung durch Betrieb)',
+      unit: 'Std',
+      quantity: stundenKorrektur,
+      unitPrice: STUNDENSATZ,
+      total: round2(stundenKorrektur * STUNDENSATZ),
+    })
+  }
 
   // --- (5) MONTAGE (nur wenn gewählt) -----------------------------------
   let montageStunden = 0
@@ -599,18 +630,19 @@ export function generateQuote(input: QuoteInput): Quote {
 
   // --- Geschätzte Ausführungs-/Lieferzeit -------------------------------
   // Grobe Heuristik aus Gesamtstunden (inkl. Vorlauf/Werkstattauslastung).
-  const gesamtStunden = fertigungStunden + montageStunden
+  const gesamtStunden = fertigungStunden + montageStunden + stundenKorrektur
   const wochen = clamp(Math.ceil(gesamtStunden / 25) + 2, 3, 12)
   const estimatedDuration = `ca. ${wochen}–${wochen + 1} Wochen`
 
-  // --- Kundennummer: eingegeben oder automatisch eindeutig vergeben -----
+  // --- Kunden-Nr. & Angebots-Nr.: bei Überarbeitung übernehmen, sonst neu --
   const customerNumber =
-    input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber()
+    adjustments?.customerNumber ??
+    (input.customerNumber.trim() !== '' ? input.customerNumber.trim() : buildCustomerNumber())
 
   // --- Fertiges Angebot -------------------------------------------------
   const date = new Date()
   return {
-    quoteNumber: buildQuoteNumber(date),
+    quoteNumber: adjustments?.quoteNumber ?? buildQuoteNumber(date),
     customerNumber,
     date: new Intl.DateTimeFormat('de-DE', {
       day: '2-digit',
@@ -628,6 +660,9 @@ export function generateQuote(input: QuoteInput): Quote {
     gross,
     lohnanteil,
     estimatedDuration,
+    revision,
+    revisionNote,
+    stundenKorrektur,
     input,
   }
 }
